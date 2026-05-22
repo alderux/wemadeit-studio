@@ -1,0 +1,9 @@
+flask>=2.3.0
+gunicorn>=21.0.0
+numpy>=1.23.0,<2.0.0
+scipy>=1.10.0
+svgwrite>=1.4.3
+tensorflow-cpu==1.15.5
+scikit-learn>=1.0.0
+matplotlib>=3.5.0
+pandas>=1.5.0

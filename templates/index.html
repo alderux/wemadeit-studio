@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WEMADE IT — Handwriting Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #d0cec9;
+    --surface:   #c8c6c0;
+    --surface2:  #bfbdb7;
+    --border:    #aeaca6;
+    --text:      #18170f;
+    --text-2:    #636059;
+    --text-3:    #969390;
+    --accent:    #18170f;
+    --canvas-bg: #e2e0da;
+    --radius:    3px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-weight: 300;
+    font-size: 13px;
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: 52px 1fr;
+    grid-template-columns: 300px 1fr;
+  }
+
+  /* ── HEADER ── */
+  header {
+    grid-column: 1 / -1;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 28px;
+    gap: 16px;
+  }
+  .logo {
+    font-family: 'Instrument Serif', serif;
+    font-size: 16px;
+    letter-spacing: 0.08em;
+  }
+  .logo-sep { color: var(--text-3); margin: 0 4px; }
+  .logo-sub {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .header-status {
+    margin-left: auto;
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #a0a09a;
+    transition: background 0.4s;
+  }
+  .status-dot.active { background: #6b8c6b; }
+  .status-dot.loading { background: #c49a2a; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── SIDEBAR ── */
+  aside {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 28px 22px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    overflow-y: auto;
+  }
+
+  .section-label {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 11px;
+    display: block;
+  }
+
+  /* Text input */
+  .text-wrap { position: relative; }
+  textarea#textInput {
+    width: 100%;
+    background: var(--canvas-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font-family: 'Instrument Serif', serif;
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--text);
+    resize: none;
+    outline: none;
+    min-height: 70px;
+    transition: border-color 0.15s;
+  }
+  textarea#textInput:focus { border-color: var(--accent); }
+  .char-count {
+    position: absolute;
+    bottom: 7px; right: 9px;
+    font-size: 9px;
+    color: var(--text-3);
+    letter-spacing: 0.1em;
+    pointer-events: none;
+  }
+
+  /* Style chips */
+  .style-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+  }
+  .style-chip {
+    background: var(--canvas-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 6px 7px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.12s;
+    user-select: none;
+  }
+  .style-chip:hover { border-color: var(--text); }
+  .style-chip.active { background: var(--text); border-color: var(--text); }
+  .style-chip.active .chip-num { color: var(--canvas-bg); }
+  .style-chip.active .chip-label { color: #aaa; }
+  .chip-num {
+    font-size: 15px;
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    color: var(--text);
+    display: block;
+    line-height: 1;
+    margin-bottom: 3px;
+  }
+  .chip-label {
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+
+  /* Sliders */
+  .slider-block { margin-bottom: 14px; }
+  .slider-block:last-child { margin-bottom: 0; }
+  .slider-row-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+  }
+  .slider-name {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-2);
+  }
+  .slider-value {
+    font-size: 9px;
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+    min-width: 28px;
+    text-align: right;
+  }
+  input[type=range] {
+    width: 100%;
+    height: 2px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--border);
+    border-radius: 1px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--text);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  input[type=range]::-webkit-slider-thumb:active { transform: scale(1.3); }
+
+  /* Color swatches */
+  .swatch-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .swatch {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.12s, border-color 0.12s;
+    flex-shrink: 0;
+  }
+  .swatch:hover { transform: scale(1.15); }
+  .swatch.active { border-color: var(--text); }
+
+  /* Buttons */
+  .btn-generate {
+    width: 100%;
+    background: var(--text);
+    color: var(--canvas-bg);
+    border: none;
+    border-radius: var(--radius);
+    padding: 13px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    font-weight: 400;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-generate:hover { opacity: 0.82; }
+  .btn-generate:active { opacity: 0.65; }
+  .btn-generate:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-row { display: flex; gap: 7px; }
+  .btn-secondary {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 9px 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .btn-secondary:hover { border-color: var(--text); color: var(--text); }
+  .btn-secondary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* ── CANVAS ── */
+  main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    gap: 20px;
+    position: relative;
+  }
+
+  .canvas-outer {
+    width: 100%;
+    max-width: 800px;
+  }
+
+  .canvas-frame {
+    background: var(--canvas-bg);
+    border-radius: var(--radius);
+    min-height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #svgContainer {
+    width: 100%;
+    padding: 32px 40px;
+  }
+  #svgContainer svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .canvas-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 60px 20px;
+    color: var(--text-3);
+  }
+  .canvas-placeholder svg { opacity: 0.35; }
+  .canvas-placeholder p {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  /* Status bar */
+  .statusbar {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .statusbar-text {
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    flex: 1;
+  }
+  .variation-id {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Error toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #3a2020;
+    color: #e8d0d0;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    transition: transform 0.3s ease;
+    z-index: 100;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Background selector */
+  .bg-opts { display: flex; gap: 6px; }
+  .bg-opt {
+    flex: 1;
+    background: var(--canvas-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 7px 4px;
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.12s;
+  }
+  .bg-opt:hover { border-color: var(--text); }
+  .bg-opt.active { background: var(--text); color: var(--canvas-bg); border-color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <span class="logo">WEMADE IT <span class="logo-sep">—</span></span>
+  <span class="logo-sub">Handwriting Studio</span>
+  <div class="header-status">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusLabel">Ready</span>
+  </div>
+</header>
+
+<!-- SIDEBAR -->
+<aside>
+
+  <!-- Text -->
+  <div>
+    <span class="section-label">Text</span>
+    <div class="text-wrap">
+      <textarea id="textInput" rows="2" spellcheck="false">we made it</textarea>
+      <span class="char-count" id="charCount">10</span>
+    </div>
+  </div>
+
+  <!-- Style -->
+  <div>
+    <span class="section-label">Handwriting Style</span>
+    <div class="style-grid" id="styleGrid">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div>
+    <span class="section-label">Controls</span>
+
+    <div class="slider-block">
+      <div class="slider-row-top">
+        <span class="slider-name">Legibility</span>
+        <span class="slider-value" id="v-bias">75</span>
+      </div>
+      <input type="range" id="s-bias" min="0" max="100" value="75">
+    </div>
+
+    <div class="slider-block">
+      <div class="slider-row-top">
+        <span class="slider-name">Stroke Weight</span>
+        <span class="slider-value" id="v-width">1.5</span>
+      </div>
+      <input type="range" id="s-width" min="5" max="40" value="15">
+    </div>
+  </div>
+
+  <!-- Ink color -->
+  <div>
+    <span class="section-label">Ink Color</span>
+    <div class="swatch-row" id="swatchRow">
+      <div class="swatch active" data-color="#18170f" style="background:#18170f"></div>
+      <div class="swatch" data-color="#1e2d4e" style="background:#1e2d4e"></div>
+      <div class="swatch" data-color="#3b1f08" style="background:#3b1f08"></div>
+      <div class="swatch" data-color="#1a3325" style="background:#1a3325"></div>
+      <div class="swatch" data-color="#4a1515" style="background:#4a1515"></div>
+      <div class="swatch" data-color="#5c5a55" style="background:#5c5a55"></div>
+      <div class="swatch" data-color="#b8b5ae" style="background:#b8b5ae; outline: 1px solid #aaa; outline-offset:1px"></div>
+    </div>
+  </div>
+
+  <!-- Canvas background -->
+  <div>
+    <span class="section-label">Canvas Background</span>
+    <div class="bg-opts" id="bgOpts">
+      <div class="bg-opt active" data-bg="#e2e0da">Warm</div>
+      <div class="bg-opt" data-bg="#ffffff">White</div>
+      <div class="bg-opt" data-bg="#1a1917">Dark</div>
+      <div class="bg-opt" data-bg="transparent">None</div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div style="display:flex;flex-direction:column;gap:9px;margin-top:auto;padding-top:8px">
+    <button class="btn-generate" id="btnGenerate">↺ &nbsp; Generate</button>
+    <div class="btn-row">
+      <button class="btn-secondary" id="btnSVG" disabled>↓ SVG</button>
+      <button class="btn-secondary" id="btnPNG" disabled>↓ PNG</button>
+    </div>
+  </div>
+
+</aside>
+
+<!-- CANVAS -->
+<main>
+  <div class="canvas-outer">
+    <div class="canvas-frame" id="canvasFrame">
+      <div class="canvas-placeholder" id="placeholder">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 24 Q8 14 12 20 Q16 26 20 16 Q24 6 28 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        </svg>
+        <p>Click Generate to begin</p>
+      </div>
+      <div id="svgContainer" style="display:none"></div>
+    </div>
+  </div>
+  <div class="statusbar">
+    <span class="statusbar-text" id="statusText">Waiting for input</span>
+    <span class="variation-id" id="varId">—</span>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────
+const state = {
+  text: 'we made it',
+  style: 0,
+  bias: 0.75,
+  strokeWidth: 1.5,
+  color: '#18170f',
+  bg: '#e2e0da',
+  varCount: 0,
+  lastSVG: null
+};
+
+// ── STYLE DEFINITIONS (display names for the 13 RNN styles) ───────────
+const STYLE_NAMES = [
+  ['0','Neat'],['1','Loose'],['2','Upright'],['3','Lean'],
+  ['4','Round'],['5','Fine'],['6','Bold'],['7','Swift'],
+  ['8','Formal'],['9','Script'],['10','Open'],['11','Tight'],['12','Natural']
+];
+
+// ── BUILD STYLE GRID ──────────────────────────────────────────────────
+const styleGrid = document.getElementById('styleGrid');
+STYLE_NAMES.forEach(([num, label], idx) => {
+  const chip = document.createElement('div');
+  chip.className = 'style-chip' + (idx === 0 ? ' active' : '');
+  chip.dataset.style = num;
+  chip.innerHTML = `<span class="chip-num">${num}</span><span class="chip-label">${label}</span>`;
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.style-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    state.style = parseInt(num);
+  });
+  styleGrid.appendChild(chip);
+});
+
+// ── SLIDER BINDINGS ───────────────────────────────────────────────────
+document.getElementById('s-bias').addEventListener('input', e => {
+  state.bias = parseInt(e.target.value) / 100;
+  document.getElementById('v-bias').textContent = e.target.value;
+});
+document.getElementById('s-width').addEventListener('input', e => {
+  const v = (parseInt(e.target.value) / 10).toFixed(1);
+  state.strokeWidth = parseFloat(v);
+  document.getElementById('v-width').textContent = v;
+});
+
+// ── COLOR SWATCHES ────────────────────────────────────────────────────
+document.getElementById('swatchRow').querySelectorAll('.swatch').forEach(sw => {
+  sw.addEventListener('click', () => {
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    sw.classList.add('active');
+    state.color = sw.dataset.color;
+  });
+});
+
+// ── BACKGROUND OPTIONS ────────────────────────────────────────────────
+document.getElementById('bgOpts').querySelectorAll('.bg-opt').forEach(opt => {
+  opt.addEventListener('click', () => {
+    document.querySelectorAll('.bg-opt').forEach(o => o.classList.remove('active'));
+    opt.classList.add('active');
+    state.bg = opt.dataset.bg;
+    document.getElementById('canvasFrame').style.background = state.bg === 'transparent' ? 'none' : state.bg;
+  });
+});
+
+// ── TEXT INPUT ────────────────────────────────────────────────────────
+const textInput = document.getElementById('textInput');
+textInput.addEventListener('input', e => {
+  state.text = e.target.value;
+  document.getElementById('charCount').textContent = e.target.value.length;
+});
+
+// ── STATUS ────────────────────────────────────────────────────────────
+function setStatus(msg, mode) {
+  const dot = document.getElementById('statusDot');
+  const label = document.getElementById('statusLabel');
+  const text = document.getElementById('statusText');
+  dot.className = 'status-dot' + (mode ? ' ' + mode : '');
+  label.textContent = mode === 'loading' ? 'Generating…' : mode === 'active' ? 'Ready' : 'Ready';
+  text.textContent = msg;
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// ── GENERATE ──────────────────────────────────────────────────────────
+async function generate() {
+  const btn = document.getElementById('btnGenerate');
+  btn.disabled = true;
+  setStatus('Generating handwriting…', 'loading');
+
+  try {
+    const res = await fetch('/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text:  state.text || 'we made it',
+        style: state.style,
+        bias:  state.bias,
+        width: state.strokeWidth,
+        color: state.color
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      throw new Error(data.error || 'Server error');
+    }
+
+    state.lastSVG = data.svg;
+    state.varCount++;
+
+    const container = document.getElementById('svgContainer');
+    const placeholder = document.getElementById('placeholder');
+    container.innerHTML = data.svg;
+    container.style.display = 'block';
+    placeholder.style.display = 'none';
+
+    document.getElementById('btnSVG').disabled = false;
+    document.getElementById('btnPNG').disabled = false;
+    document.getElementById('varId').textContent = `VAR #${state.varCount}`;
+    setStatus(`Variation #${state.varCount} — style ${state.style} — legibility ${Math.round(state.bias * 100)}%`, 'active');
+
+  } catch (err) {
+    setStatus('Error — try again', '');
+    showToast(err.message || 'Generation failed');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── DOWNLOAD SVG ─────────────────────────────────────────────────────
+function downloadSVG() {
+  if (!state.lastSVG) return;
+  const blob = new Blob([state.lastSVG], { type: 'image/svg+xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `wemadeit-${Date.now()}.svg`;
+  a.click();
+}
+
+// ── DOWNLOAD PNG ──────────────────────────────────────────────────────
+function downloadPNG() {
+  if (!state.lastSVG) return;
+  const svgBlob = new Blob([state.lastSVG], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(svgBlob);
+  const img = new Image();
+  img.onload = () => {
+    const scale = 3;
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth * scale || 2400;
+    canvas.height = img.naturalHeight * scale || 900;
+    const ctx = canvas.getContext('2d');
+    if (state.bg !== 'transparent') {
+      ctx.fillStyle = state.bg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `wemadeit-${Date.now()}.png`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+}
+
+// ── BIND ──────────────────────────────────────────────────────────────
+document.getElementById('btnGenerate').addEventListener('click', generate);
+document.getElementById('btnSVG').addEventListener('click', downloadSVG);
+document.getElementById('btnPNG').addEventListener('click', downloadPNG);
+
+// Enter to generate
+textInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); generate(); }
+});
+</script>
+</body>
+</html>
